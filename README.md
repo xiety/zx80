@@ -2,4 +2,4 @@ ZX80 Emulator
 
 No audio
 
-![Screenshot](docs/zx1.jpg?raw=true)
+![Screenshot](docs/zx2.gif?raw=true)

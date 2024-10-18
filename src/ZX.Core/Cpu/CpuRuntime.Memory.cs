@@ -45,8 +45,7 @@ public partial class CpuRuntime
             throw new ArgumentOutOfRangeException(nameof(address));
 
         var span = memory.AsSpan(address, 2);
-        var casted = MemoryMarshal.Cast<byte, ushort>(span);
-        ref ushort result = ref casted[0];
+        ref ushort result = ref MemoryMarshal.AsRef<ushort>(span);
 
         OnMemoryRead?.Invoke(address);
         OnMemoryRead?.Invoke((ushort)(address + 1));

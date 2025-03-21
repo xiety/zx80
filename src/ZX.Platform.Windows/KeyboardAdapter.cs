@@ -36,21 +36,43 @@ public class KeyboardAdapter
         if (keyCode == Keys.Oem5) // Key '\'
             keyCode = Keys.Enter;
 
-        if (keys.TryGetValue(keyCode, out var item))
+        if (keyCode == Keys.Back)
         {
-            output[item.Address] &= (byte)~item.Bit; //set bit to zero
+            KeyDownInternal(Keys.ShiftKey);
+            KeyDownInternal(Keys.D0);
         }
+        else
+        {
+            KeyDownInternal(keyCode);
+        }
+    }
+
+    private void KeyDownInternal(Keys keyCode)
+    {
+        if (keys.TryGetValue(keyCode, out var item))
+            output[item.Address] &= (byte)~item.Bit; //set bit to zero
     }
 
     public void SetKeyUp(Keys keyCode)
     {
-        if (keyCode == Keys.Oem5)
+        if (keyCode == Keys.Oem5) // Key '\'
             keyCode = Keys.Enter;
 
-        if (keys.TryGetValue(keyCode, out var item))
+        if (keyCode == Keys.Back)
         {
-            output[item.Address] |= (byte)item.Bit; //set bit to one
+            KeyUpInternal(Keys.ShiftKey);
+            KeyUpInternal(Keys.D0);
         }
+        else
+        {
+            KeyUpInternal(keyCode);
+        }
+    }
+
+    private void KeyUpInternal(Keys keyCode)
+    {
+        if (keys.TryGetValue(keyCode, out var item))
+            output[item.Address] |= (byte)item.Bit; //set bit to one
     }
 
     record Item(ushort Address, byte Bit);

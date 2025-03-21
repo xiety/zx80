@@ -38,11 +38,10 @@ public class SpectrumRuntime(string biosFolder)
 
     public void InitializeBios()
     {
+        cpu.Clear();
         cpu.Load(0x0000, File.ReadAllBytes(Path.Combine(biosFolder, "48.rom")));
         cpu.LoadRoutineCatalog(new RoutineCatalog(Path.Combine(biosFolder, "48.rom.description")));
         cpu.SetPC(0x0000);
-
-        OnReset?.Invoke();
     }
 
     public void LoadBin(string filename)
@@ -55,7 +54,24 @@ public class SpectrumRuntime(string biosFolder)
         OnReset?.Invoke();
     }
 
-    public void LoadSna(string filename)
+    public void Load(string filename)
+    {
+        var ext = Path.GetExtension(filename).ToLower();
+
+        switch (ext)
+        {
+            case ".sna":
+                LoadSna(filename);
+                break;
+            case ".tap":
+                LoadTap(filename);
+                break;
+            default:
+                throw new NotSupportedException($"Unknown extension: {ext}");
+        }
+    }
+
+    private void LoadSna(string filename)
     {
         var (reg, data) = new SnaFileFormat().Load(filename);
         var start = (ushort)(65536 - data.Length);
@@ -63,6 +79,16 @@ public class SpectrumRuntime(string biosFolder)
         cpu.InitRegisters(reg);
         cpu.Load(start, data);
         cpu.Retn(); //restore PC from stack
+
+        OnReset?.Invoke();
+    }
+
+    private void LoadTap(string filename)
+    {
+        var (address, data) = new TapFileFormat().Load(filename);
+
+        //cpu.InitRegisters(new Registers() { AF = 0xFFFF, SP = 0xFFFF, PC = cpu.Reg.PC });
+        cpu.Load(16384, data.AsSpan(16384));
 
         OnReset?.Invoke();
     }
@@ -99,7 +125,6 @@ public class SpectrumRuntime(string biosFolder)
 
             OnStep?.Invoke();
         }
-        //while (currentTick < 20000);
         while (currentTick < TicksPerFrame);
 
         WaitRealTime(interruptStartTime);

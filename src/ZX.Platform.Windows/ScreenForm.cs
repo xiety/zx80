@@ -39,7 +39,7 @@ namespace ZX.Platform.Windows
             debug = new DebugVisualizer(spectrum);
             keyboard = new KeyboardAdapter(spectrum.Output);
 
-            spectrum.InitializeBios();
+            spectrum.Reset();
 
             backgroundTask = new BackgroundTask(BackgroundProcessCpu, tokenSource.Token);
             await backgroundTask.RunAsync(); //await to handle exceptions
@@ -50,8 +50,9 @@ namespace ZX.Platform.Windows
             if (started)
             {
                 spectrum.RunFrame();
-                GenerateImages();
             }
+
+            GenerateImages();
         }
 
         private void GenerateImages()
@@ -75,8 +76,7 @@ namespace ZX.Platform.Windows
 
             if (filename is not null)
             {
-                backgroundTask.Dispatch(() => spectrum.LoadSna(Path.Combine(folderGames, filename)));
-
+                backgroundTask.Dispatch(() => spectrum.Load(Path.Combine(folderGames, filename)));
                 pictureScreen.Focus();
 
                 started = true;
@@ -88,6 +88,8 @@ namespace ZX.Platform.Windows
             backgroundTask.Dispatch(spectrum.Reset);
 
             pictureScreen.Focus();
+
+            started = true;
         }
 
         private void ScreenForm_FormClosing(object sender, FormClosingEventArgs e)
@@ -133,7 +135,8 @@ namespace ZX.Platform.Windows
             if (!Directory.Exists(fullpath))
                 Directory.CreateDirectory(fullpath);
 
-            pictureScreen.Image.Save(Path.Combine(fullpath, "data.png"), ImageFormat.Png);
+            pictureScreen.Image?.Save(Path.Combine(fullpath, "data.png"), ImageFormat.Png);
+            pictureDebug.Image?.Save(Path.Combine(fullpath, "debug.png"), ImageFormat.Png);
             spectrum.SaveSna(Path.Combine(fullpath, "data.sna"));
             debug.SaveTrace(Path.Combine(fullpath, "data.map"));
         }
@@ -143,7 +146,7 @@ namespace ZX.Platform.Windows
 
         private void ComboFiles_DropDown(object sender, EventArgs e)
         {
-            var files = Directory.GetFiles(folderGames, "*.sna", SearchOption.AllDirectories);
+            var files = Directory.GetFiles(folderGames, "*.*", SearchOption.AllDirectories);
 
             comboFiles.Items.Clear();
 

@@ -1,4 +1,6 @@
-﻿namespace ZX.Core.Cpu;
+﻿using System;
+
+namespace ZX.Core.Cpu;
 
 public partial class CpuRuntime
 {
@@ -103,8 +105,11 @@ public partial class CpuRuntime
         }
     }
 
-    public void Load(uint address, byte[] program)
-        => Array.Copy(program, 0, memory, address, program.Length);
+    public void Clear()
+        => Array.Fill(memory, (byte)0);
+
+    public void Load(uint address, ReadOnlySpan<byte> program)
+        => program.CopyTo(memory.AsSpan((int)address));
 
     public void LoadRoutineCatalog(RoutineCatalog routineCatalog)
         => this.routineCatalog = routineCatalog;

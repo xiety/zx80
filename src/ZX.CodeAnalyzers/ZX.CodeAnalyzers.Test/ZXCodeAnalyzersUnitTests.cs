@@ -1,6 +1,7 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-using VerifyCS = ZX.CodeAnalyzers.Test.CSharpAnalyzerVerifier<ZX.CodeAnalyzers.ZXCodeAnalyzer>;
+using VerifyCS = Microsoft.CodeAnalysis.CSharp.Testing.CSharpAnalyzerVerifier
+    <ZX.CodeAnalyzers.ZXCodeAnalyzer, Microsoft.CodeAnalysis.Testing.DefaultVerifier>;
 
 namespace ZX.CodeAnalyzers.Test
 {

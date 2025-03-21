@@ -8,7 +8,7 @@ public abstract class BaseCpuTests
     {
         var cpu = new CpuRuntime();
 
-        cpu.Load(param.Origin, param.Program.ToArray());
+        cpu.Load(param.Origin, [.. param.Program]);
 
         if (param.Reg is Registers r)
             cpu.InitRegisters(r);
@@ -23,7 +23,7 @@ public abstract class BaseCpuTests
 
 public class Param
 {
-    public List<byte> Program { get; } = new();
+    public List<byte> Program { get; } = [];
 
     public ushort Origin { get; set; } = 0;
 

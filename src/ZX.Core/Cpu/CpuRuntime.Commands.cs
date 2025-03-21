@@ -634,7 +634,7 @@ public partial class CpuRuntime
 
     private void Ret()
     {
-        if (callStackDebug.Any())
+        if (callStackDebug.Count != 0)
             callStackDebug.Pop();
 
         Pop(ref reg.PC);
@@ -999,7 +999,7 @@ public partial class CpuRuntime
 
     public void Retn()
     {
-        reg.IFF1 = reg.IFF1 ^ reg.IFF2;
+        reg.IFF1 ^= reg.IFF2;
         Ret();
     }
 

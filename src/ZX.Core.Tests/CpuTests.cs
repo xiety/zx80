@@ -10,7 +10,7 @@ public class CPU_Ld_Tests : BaseCpuTests
     {
         var cpu = Test(new() { Program = { 0x22, 0x12, 0x34 }, Reg = new() { HL = 0xABCD } });
 
-        var address = BitConverter.ToUInt16(new byte[] { 0x12, 0x34 });
+        var address = BitConverter.ToUInt16([0x12, 0x34]);
 
         Assert.AreEqual(0xCD, cpu.Memory[address]);
         Assert.AreEqual(0xAB, cpu.Memory[address + 1]);
@@ -49,7 +49,6 @@ public class CPU_Add_Tests : BaseCpuTests
     [DataRow((sbyte)-127, (sbyte)-10, (sbyte)119, true, true, false)]
     [DataRow((sbyte)-127, (sbyte)-1, (sbyte)-128, false, true, true)]
     [DataRow((sbyte)-128, (sbyte)-1, (sbyte)127, true, true, false)]
-
     [TestMethod]
     public void Add(sbyte a, sbyte b, sbyte expected, bool expectedP, bool expectedC, bool expectedH)
     {
@@ -71,7 +70,7 @@ public class CPU_Add_Tests : BaseCpuTests
     [DataRow((short)0x44, (short)0x44, (short)0x88, false, false)]
     [DataRow((short)0x88, (short)0x88, (short)0x110, false, true)]
     [TestMethod]
-    public void Add(short a, short b, sbyte expected, bool expectedC, bool expectedH)
+    public void Add(short a, short b, short expected, bool expectedC, bool expectedH)
     {
         var cpu = new CpuRuntime();
 

@@ -1,5 +1,7 @@
+using System.Diagnostics;
 using System.Drawing.Imaging;
 
+using ZX.Core.Cpu;
 using ZX.Core.Spectrum;
 
 namespace ZX.Platform.Windows
@@ -13,16 +15,21 @@ namespace ZX.Platform.Windows
         private VideoAdapter video = default!;
         private DebugVisualizer debug = default!;
         private KeyboardAdapter keyboard = default!;
+        private SoundAdapter sound = default!;
+
+        long frameStartTime = Stopwatch.GetTimestamp();
 
         private CancellationTokenSource tokenSource = default!;
         private BackgroundTask backgroundTask = default!;
 
+        private bool speedLimit = true;
         private bool started;
-
         private bool closing;
 
         public ScreenForm()
         {
+            this.DoubleBuffered = true;
+
             folderGames = Path.Combine(folder, "games");
 
             InitializeComponent();
@@ -38,11 +45,27 @@ namespace ZX.Platform.Windows
             video = new VideoAdapter(spectrum.Memory);
             debug = new DebugVisualizer(spectrum);
             keyboard = new KeyboardAdapter(spectrum.Output);
+            sound = new SoundAdapter(spectrum);
+
+            spectrum.OnOutput += sound.HandleOutput;
 
             spectrum.Reset();
 
-            backgroundTask = new BackgroundTask(BackgroundProcessCpu, tokenSource.Token);
-            await backgroundTask.RunAsync(); //await to handle exceptions
+            await RunBackgroundTask();
+        }
+
+        private async Task RunBackgroundTask()
+        {
+            try
+            {
+                backgroundTask = new BackgroundTask(BackgroundProcessCpu, tokenSource.Token);
+                await backgroundTask.RunAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+                throw;
+            }
         }
 
         private async Task BackgroundProcessCpu(CancellationToken cancel)
@@ -50,9 +73,26 @@ namespace ZX.Platform.Windows
             if (started)
             {
                 spectrum.RunFrame();
+                sound.RunFrame();
             }
 
             GenerateImages();
+
+            if (speedLimit)
+                WaitRealTime();
+        }
+
+        private void WaitRealTime()
+        {
+            var frameDuration = (long)(Stopwatch.Frequency / (double)CpuRuntime.FramesPerSecond);
+            var required = frameStartTime + frameDuration;
+
+            do
+            {
+                Thread.Yield();
+                frameStartTime = Stopwatch.GetTimestamp();
+            }
+            while (frameStartTime < required);
         }
 
         private void GenerateImages()
@@ -65,6 +105,7 @@ namespace ZX.Platform.Windows
 
             pictureScreen.Invoke(() =>
             {
+                textBoxFps.Text = $"{spectrum.Fps}";
                 pictureScreen.Image = image;
                 pictureDebug.Image = debugImage;
             });
@@ -101,8 +142,7 @@ namespace ZX.Platform.Windows
             //Invoke pending operations before disposing form
             Application.DoEvents();
 
-            //Possible deadlock?
-            backgroundTask.Wait();
+            backgroundTask?.Wait();
         }
 
         protected override bool ProcessKeyPreview(ref Message m)

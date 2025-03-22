@@ -84,10 +84,10 @@ public class OpcodesGenerator(Item[] items, string outputPattern)
             index++;
         }
 
-        sb.AppendLine("""
+        sb.AppendLine($$"""
                     default:
-                        //throw new Exception($"{op:X2}");
-                        Console.WriteLine($"{op:X2}");
+                        //throw new Exception($"\{op:X2\}");
+                        Console.WriteLine($"Unknown operation: {{prefix}} {op:X2}");
                         return (0, "UNKNOWN");
                 }
             }
@@ -144,8 +144,9 @@ public class OpcodesGenerator(Item[] items, string outputPattern)
 
         var isRef = operation switch
         {
-            "set" or "res" or "rrc" or "sla" or "sra" or "srl" or "sll" or "rl" or "rlc" or "rrc" or "rr"
+            "rrc" or "sla" or "sra" or "sll" or "rl" or "rlc" or "rrc" or "rr"
                 => index == total - 1,
+            "set" or "res" or "srl" => true,
             "ex" => true,
             "sub" or "and" or "xor" or "or" or "cp" or "push" or "tst" or "in" when total is 1
                 => false,

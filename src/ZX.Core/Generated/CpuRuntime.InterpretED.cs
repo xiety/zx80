@@ -19,8 +19,8 @@ public partial class CpuRuntime
                 Out0(ReadByteOpcode(), reg.B);
                 return (13, "out0 (n),b");
             case 0x04:
-                Tst(reg.B);
-                return (10, "tst b");
+                Neg();
+                return (8, "neg");
             case 0x08:
                 In0(ref reg.C, ReadByteOpcode());
                 return (12, "in0 c,(n)");
@@ -28,8 +28,8 @@ public partial class CpuRuntime
                 Out0(ReadByteOpcode(), reg.C);
                 return (13, "out0 (n),c");
             case 0x0C:
-                Tst(reg.C);
-                return (10, "tst c");
+                Neg();
+                return (8, "neg");
             case 0x10:
                 In0(ref reg.D, ReadByteOpcode());
                 return (12, "in0 d,(n)");
@@ -37,8 +37,8 @@ public partial class CpuRuntime
                 Out0(ReadByteOpcode(), reg.D);
                 return (13, "out0 (n),d");
             case 0x14:
-                Tst(reg.D);
-                return (10, "tst d");
+                Neg();
+                return (8, "neg");
             case 0x18:
                 In0(ref reg.E, ReadByteOpcode());
                 return (12, "in0 e,(n)");
@@ -46,8 +46,8 @@ public partial class CpuRuntime
                 Out0(ReadByteOpcode(), reg.E);
                 return (13, "out0 (n),e");
             case 0x1C:
-                Tst(reg.E);
-                return (10, "tst e");
+                Neg();
+                return (8, "neg");
             case 0x20:
                 In0(ref reg.H, ReadByteOpcode());
                 return (12, "in0 h,(n)");
@@ -55,8 +55,8 @@ public partial class CpuRuntime
                 Out0(ReadByteOpcode(), reg.H);
                 return (13, "out0 (n),h");
             case 0x24:
-                Tst(reg.H);
-                return (10, "tst h");
+                Neg();
+                return (8, "neg");
             case 0x28:
                 In0(ref reg.L, ReadByteOpcode());
                 return (12, "in0 l,(n)");
@@ -64,11 +64,11 @@ public partial class CpuRuntime
                 Out0(ReadByteOpcode(), reg.L);
                 return (13, "out0 (n),l");
             case 0x2C:
-                Tst(reg.L);
-                return (10, "tst l");
+                Neg();
+                return (8, "neg");
             case 0x34:
-                Tst(GetByteMemory(reg.HL));
-                return (10, "tst (hl)");
+                Neg();
+                return (8, "neg");
             case 0x38:
                 In0(ref reg.A, ReadByteOpcode());
                 return (12, "in0 a,(n)");
@@ -76,8 +76,8 @@ public partial class CpuRuntime
                 Out0(ReadByteOpcode(), reg.A);
                 return (13, "out0 (n),a");
             case 0x3C:
-                Tst(reg.A);
-                return (10, "tst a");
+                Neg();
+                return (8, "neg");
             case 0x40:
                 In(ref reg.B);
                 return (12, "in b,(c)");
@@ -115,11 +115,14 @@ public partial class CpuRuntime
                 Ld(ref reg.BC, GetUShortMemory(ReadUShortOpcode()));
                 return (20, "ld bc,(nn)");
             case 0x4C:
-                Mlt(ref reg.BC);
-                return (17, "mlt bc");
+                Neg();
+                return (8, "neg");
             case 0x4D:
                 Reti();
                 return (14, "reti");
+            case 0x4E:
+                Im(0);
+                return (8, "im 0");
             case 0x4F:
                 Ld(ref reg.R, reg.A);
                 return (9, "ld r,a");
@@ -135,6 +138,12 @@ public partial class CpuRuntime
             case 0x53:
                 Ld(ref GetUShortMemoryRef(ReadUShortOpcode()), reg.DE);
                 return (20, "ld (nn),de");
+            case 0x54:
+                Neg();
+                return (8, "neg");
+            case 0x55:
+                Retn();
+                return (14, "retn");
             case 0x56:
                 Im(1);
                 return (8, "im 1");
@@ -154,8 +163,11 @@ public partial class CpuRuntime
                 Ld(ref reg.DE, GetUShortMemory(ReadUShortOpcode()));
                 return (20, "ld de,(nn)");
             case 0x5C:
-                Mlt(ref reg.DE);
-                return (17, "mlt de");
+                Neg();
+                return (8, "neg");
+            case 0x5D:
+                Retn();
+                return (14, "retn");
             case 0x5E:
                 Im(2);
                 return (8, "im 2");
@@ -175,8 +187,14 @@ public partial class CpuRuntime
                 Ld(ref GetUShortMemoryRef(ReadUShortOpcode()), reg.HL);
                 return (20, "ld (nn),hl");
             case 0x64:
-                Tst(ReadByteOpcode());
-                return (10, "tst n");
+                Neg();
+                return (8, "neg");
+            case 0x65:
+                Retn();
+                return (14, "retn");
+            case 0x66:
+                Im(0);
+                return (8, "im 0");
             case 0x67:
                 Rrd();
                 return (18, "rrd");
@@ -193,8 +211,14 @@ public partial class CpuRuntime
                 Ld(ref reg.HL, GetUShortMemory(ReadUShortOpcode()));
                 return (20, "ld hl,(nn)");
             case 0x6C:
-                Mlt(ref reg.HL);
-                return (17, "mlt hl");
+                Neg();
+                return (8, "neg");
+            case 0x6D:
+                Retn();
+                return (14, "retn");
+            case 0x6E:
+                Im(0);
+                return (8, "im 0");
             case 0x6F:
                 Rld();
                 return (18, "rld");
@@ -211,8 +235,11 @@ public partial class CpuRuntime
                 Ld(ref GetUShortMemoryRef(ReadUShortOpcode()), reg.SP);
                 return (20, "ld (nn),sp");
             case 0x74:
-                Tstio(ReadByteOpcode());
-                return (12, "tstio n");
+                Neg();
+                return (8, "neg");
+            case 0x75:
+                Retn();
+                return (15, "retn");
             case 0x76:
                 Slp();
                 return (8, "slp");
@@ -229,8 +256,14 @@ public partial class CpuRuntime
                 Ld(ref reg.SP, GetUShortMemory(ReadUShortOpcode()));
                 return (20, "ld sp,(nn)");
             case 0x7C:
-                Mlt(ref reg.SP);
-                return (17, "mlt sp");
+                Neg();
+                return (8, "neg");
+            case 0x7D:
+                Retn();
+                return (14, "retn");
+            case 0x7E:
+                Im(2);
+                return (8, "im 2");
             case 0x83:
                 Otim();
                 return (14, "otim");
@@ -292,8 +325,8 @@ public partial class CpuRuntime
                 isFast = Otdr();
                 return (isFast ? 16 : 21, "otdr");
             default:
-                //throw new Exception($"{op:X2}");
-                Console.WriteLine($"{op:X2}");
+                //throw new Exception($"\{op:X2\}");
+                Console.WriteLine($"Unknown operation: ED {op:X2}");
                 return (0, "UNKNOWN");
         }
     }

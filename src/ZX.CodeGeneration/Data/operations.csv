@@ -935,26 +935,26 @@ DDCB;set 7,(ix+d);4;23;0;DDCBXXFE
 DDCB;set 7,(ix+d),a;4;23;0;DDCBXXFF
 ED;in0 b,(n);3;12;0;ED00XX
 ED;out0 (n),b;3;13;0;ED01XX
-ED;tst b;2;10;0;ED04
+ED;neg;2;8;0;ED04
 ED;in0 c,(n);3;12;0;ED08XX
 ED;out0 (n),c;3;13;0;ED09XX
-ED;tst c;2;10;0;ED0C
+ED;neg;2;8;0;ED0C
 ED;in0 d,(n);3;12;0;ED10XX
 ED;out0 (n),d;3;13;0;ED11XX
-ED;tst d;2;10;0;ED14
+ED;neg;2;8;0;ED14
 ED;in0 e,(n);3;12;0;ED18XX
 ED;out0 (n),e;3;13;0;ED19XX
-ED;tst e;2;10;0;ED1C
+ED;neg;2;8;0;ED1C
 ED;in0 h,(n);3;12;0;ED20XX
 ED;out0 (n),h;3;13;0;ED21XX
-ED;tst h;2;10;0;ED24
+ED;neg;2;8;0;ED24
 ED;in0 l,(n);3;12;0;ED28XX
 ED;out0 (n),l;3;13;0;ED29XX
-ED;tst l;2;10;0;ED2C
-ED;tst (hl);2;10;0;ED34
+ED;neg;2;8;0;ED2C
+ED;neg;2;8;0;ED34
 ED;in0 a,(n);3;12;0;ED38XX
 ED;out0 (n),a;3;13;0;ED39XX
-ED;tst a;2;10;0;ED3C
+ED;neg;2;8;0;ED3C
 ED;in b,(c);2;12;0;ED40
 ED;out (c),b;2;12;0;ED41
 ED;sbc hl,bc;2;15;0;ED42
@@ -967,45 +967,56 @@ ED;in c,(c);2;12;0;ED48
 ED;out (c),c;2;12;0;ED49
 ED;adc hl,bc;2;15;0;ED4A
 ED;ld bc,(nn);4;20;0;ED4BXXXX
-ED;mlt bc;2;17;0;ED4C
+ED;neg;2;8;0;ED4C
 ED;reti;2;14;0;ED4D
+ED;im 0;2;8;0;ED4E
 ED;ld r,a;2;9;0;ED4F
 ED;in d,(c);2;12;0;ED50
 ED;out (c),d;2;12;0;ED51
 ED;sbc hl,de;2;15;0;ED52
 ED;ld (nn),de;4;20;0;ED53XXXX
+ED;neg;2;8;0;ED54
+ED;retn;2;14;0;ED55
 ED;im 1;2;8;0;ED56
 ED;ldreg a,i;2;9;0;ED57
 ED;in e,(c);2;12;0;ED58
 ED;out (c),e;2;12;0;ED59
 ED;adc hl,de;2;15;0;ED5A
 ED;ld de,(nn);4;20;0;ED5BXXXX
-ED;mlt de;2;17;0;ED5C
+ED;neg;2;8;0;ED5C
+ED;retn;2;14;0;ED5D
 ED;im 2;2;8;0;ED5E
 ED;ldreg a,r;2;9;0;ED5F
 ED;in h,(c);2;12;0;ED60
 ED;out (c),h;2;12;0;ED61
 ED;sbc hl,hl;2;15;0;ED62
 ED;ld (nn),hl;4;20;0;ED63XXXX
-ED;tst n;3;10;0;ED64XX
+ED;neg;3;8;0;ED64XX
+ED;retn;2;14;0;ED65
+ED;im 0;2;8;0;ED66
 ED;rrd;2;18;0;ED67
 ED;in l,(c);2;12;0;ED68
 ED;out (c),l;2;12;0;ED69
 ED;adc hl,hl;2;15;0;ED6A
 ED;ld hl,(nn);4;20;0;ED6BXXXX
-ED;mlt hl;2;17;0;ED6C
+ED;neg;2;8;0;ED6C
+ED;retn;2;14;0;ED6D
+ED;im 0;2;8;0;ED6E
 ED;rld;2;18;0;ED6F
 ED;in (c);2;12;0;ED70
 ED;out (c),0;2;12;0;ED71
 ED;sbc hl,sp;2;15;0;ED72
 ED;ld (nn),sp;4;20;0;ED73XXXX
-ED;tstio n;3;12;0;ED74XX
+ED;neg;2;8;0;ED74
+ED;retn;2;15;0;ED75
 ED;slp;2;8;0;ED76
 ED;in a,(c);2;12;0;ED78
 ED;out (c),a;2;12;0;ED79
 ED;adc hl,sp;2;15;0;ED7A
 ED;ld sp,(nn);4;20;0;ED7BXXXX
-ED;mlt sp;2;17;0;ED7C
+ED;neg;2;8;0;ED7C
+ED;retn;2;14;0;ED7D
+ED;im 2;2;8;0;ED7E
 ED;otim;2;14;0;ED83
 ED;otdm;2;14;0;ED8B
 ED;otimr;2;16;14;ED93

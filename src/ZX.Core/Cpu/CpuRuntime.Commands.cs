@@ -22,20 +22,22 @@ public partial class CpuRuntime
         OutCommon(r, address);
     }
 
-    private void Out(byte r, byte port)
+    private void Out(byte low, byte high)
     {
-        ushort address = (ushort)(reg.A << 8 | port);
-        OutCommon(r, address);
+        ushort address = (ushort)(low | high << 8);
+        OutCommon(reg.A, address);
     }
 
     private void OutCommon(byte r, ushort address)
     {
-        output[address] = r;
+        var low = (byte)(address & 0b11111111);
+        output[low] = r;
+        OnOutput?.Invoke(low, r);
     }
 
     private void In()
     {
-        throw new NotSupportedException("Z180");
+        NotImplemented();
     }
 
     private void In(ref byte r)
@@ -51,14 +53,10 @@ public partial class CpuRuntime
     }
 
     private void InCommon(ref byte r, ushort address)
-    {
-        r = output[address];
-    }
+        => r = output[address];
 
     private void Halt()
-    {
-        isHalt = true;
-    }
+        => isHalt = true;
 
     private void Ccf()
     {
@@ -80,14 +78,13 @@ public partial class CpuRuntime
         flag.C = true;
     }
 
-    //Contents of A are inverted
     private void Cpl()
     {
         reg.A = (byte)(~reg.A); //invert bits
 
         //flag.S not affected
         //flag.Z not affected
-        //TODO: UpdateFlagH(reg.A);
+        flag.H = true;
         //flag.P not affected
         flag.N = true;
         //flag.C not affected
@@ -95,8 +92,22 @@ public partial class CpuRuntime
 
     private void Daa()
     {
-        //TODO: correct BCD addition or substraction
-        //throw new NotSupportedException();
+        flag.C |= (reg.A > 0x99);
+
+        byte correction = flag.C ? (byte)0x60 : (byte)0;
+
+        if (flag.H || (reg.A & 0x0F) > 0x09)
+            correction |= 0x06;
+
+        flag.H = flag.N
+            ? (reg.A & 0x0F) < (correction & 0x0F)
+            : ((reg.A & 0x0F) + (correction & 0x0F)) > 0x0F;
+
+        reg.A = flag.N
+            ? (byte)(reg.A - correction)
+            : (byte)(reg.A + correction);
+
+        UpdateFlagSZUP(reg.A);
     }
 
     private bool Djnz()
@@ -117,21 +128,6 @@ public partial class CpuRuntime
         return fast;
     }
 
-    public void Add(ref byte r, byte value)
-    {
-        var orig = r;
-        var signedA = (sbyte)r;
-        var signedB = (sbyte)value;
-
-        r = (byte)(signedA + signedB);
-
-        UpdateFlagS(r);
-        UpdateFlagZ(r);
-        (flag.C, flag.H) = Bits.CalcAddCarry(signedA, signedB);
-        flag.P = SameSign(value, orig) && !SameSign(orig, r);
-        flag.N = false;
-    }
-
     private bool SameSign(byte a, byte b)
         => Sign(a) == Sign(b);
 
@@ -144,63 +140,60 @@ public partial class CpuRuntime
     private bool Sign(ushort b)
         => (b & 0b_1000_0000_0000_0000) == 0b_1000_0000_0000_0000;
 
-    public void Add(ref ushort rr, ushort value)
-    {
-        var orig = rr;
-        var signedA = (short)rr;
-        var signedB = (short)value;
-
-        rr = (ushort)(signedA + signedB);
-
-        //flag.S is unaffected
-        //flag.Z is unaffected
-        (flag.C, flag.H) = Bits.CalcAddCarry(signedA, signedB);
-        //flag.H = ((orig ^ value ^ rr) >> 8 & 0x10) != 0;
-        //flag.C = (rr + value) > 0xFFFF; 
-        //flag.P is unaffected? // = SameSign(value, orig) && !SameSign(orig, rr);
-        flag.N = false;
-    }
+    public void Add(ref byte r, byte value)
+        => AddCommon(ref r, value, false);
 
     public void Adc(ref byte r, byte value)
+        => AddCommon(ref r, value, true);
+
+    private void AddCommon(ref byte r, byte value, bool useCarry)
     {
         var orig = r;
-        var signedA = (sbyte)r;
-        var signedB = (sbyte)value;
-        var carryBit = (flag.C ? 1 : 0);
 
-        r = (byte)(signedA + signedB + carryBit);
+        var carryBit = useCarry && flag.C ? (byte)1 : (byte)0;
+        r = (byte)(r + value + carryBit);
 
-        UpdateFlagS(r);
-        UpdateFlagZ(r);
-        (flag.C, flag.H) = Bits.CalcAddCarry(signedA, signedB);
+        UpdateFlagSZU(r);
+        (flag.C, flag.H) = Bits.CalcAddCarry(orig, value, carryBit);
         flag.P = SameSign(orig, value) && !SameSign(orig, r);
         flag.N = false;
     }
 
-    public void Adc(ref ushort r, ushort value)
+    public void Add(ref ushort rr, ushort value)
+        => AddCommon(ref rr, value, false, flags: false);
+
+    public void Adc(ref ushort rr, ushort value)
+        => AddCommon(ref rr, value, true, flags: true);
+
+    private void AddCommon(ref ushort rr, ushort value, bool useCarry, bool flags)
     {
-        throw new NotImplementedException();
+        var orig = rr;
+
+        var carryBit = (useCarry && flag.C ? (byte)1 : (byte)0);
+
+        rr = (ushort)(rr + value + carryBit);
+
+        (flag.C, flag.H) = Bits.CalcAddCarry(orig, value, carryBit);
+        flag.N = false;
+
+        if (flags)
+        {
+            UpdateFlagSZU(rr);
+            flag.P = SameSign(orig, value) && !SameSign(orig, rr);
+        }
     }
 
     public void Sub(byte value)
-    {
-        Sub(ref reg.A, value);
-    }
+        => reg.A = SubCommon(reg.A, value, false);
 
-    public void Sub(ref byte r, byte value)
+    private byte SubCommon(byte r, byte value, bool useCarry)
     {
-        r = SubCommon(r, value);
-    }
+        var carryBit = useCarry && flag.C ? (byte)1 : (byte)0;
 
-    private byte SubCommon(byte r, byte value)
-    {
-        var signedA = (sbyte)r;
-        var signedB = (sbyte)value;
-
-        var result = (byte)(signedA - signedB);
+        var result = (byte)(r - value - carryBit);
 
         UpdateFlagSZU(result);
-        (flag.C, flag.H) = Bits.CalcSubCarry(signedA, signedB);
+        (flag.C, flag.H) = Bits.CalcSubCarry(r, value, carryBit);
         flag.P = !SameSign(r, value) && SameSign(value, result);
         flag.N = true;
 
@@ -208,65 +201,46 @@ public partial class CpuRuntime
     }
 
     public void Sbc(ref byte r, byte value)
-    {
-        var orig = r;
-        var signedA = (sbyte)r;
-        var signedB = (sbyte)value;
-        var carryBit = (flag.C ? 1 : 0);
-
-        r = (byte)(signedA - (signedB + carryBit));
-
-        UpdateFlagSZU(r);
-        (flag.C, flag.H) = Bits.CalcSubCarry(signedA, signedB); //TODO
-        flag.P = false; //TODO: HOW TO?
-        flag.N = false;
-    }
+        => r = SubCommon(r, value, true);
 
     public void Sbc(ref ushort rr, ushort value)
+        => SubCommon(ref rr, value, true);
+
+    private void SubCommon(ref ushort rr, ushort value, bool useCarry)
     {
-        //var signedA = (short)rr;
-        //var signedB = (short)value;
+        ushort result;
 
-        //var carryBit = (flag.C ? 1 : 0);
-        //rr = (ushort)(rr - value - carryBit);
+        (result, flag.C, flag.H) = Bits.Sub(rr, value, useCarry & flag.C, 12);
 
-        //flag.H - borrow from bit 12
-        (rr, flag.C, flag.H) = Bits.Sub(rr, value, flag.C, 12);
-
-        UpdateFlagS(rr);
-        UpdateFlagZ(rr);
+        UpdateFlagSZU(result);
         flag.N = true;
+        flag.P = !SameSign(rr, value) && SameSign(value, result);
+
+        rr = result;
     }
 
     public void And(byte value)
-    {
-        And(ref reg.A, value);
-    }
+        => And(ref reg.A, value);
 
     public void And(ref byte r, byte value)
     {
         r = (byte)(r & value);
 
-        UpdateFlagSZU(r);
+        UpdateFlagSZUP(r);
         flag.C = false;
         flag.H = true;
-        UpdateFlagPWithParity(r);
         flag.N = false;
     }
 
     public void Xor(byte value)
-    {
-        Xor(ref reg.A, value);
-    }
+        => Xor(ref reg.A, value);
 
     public void Xor(ref byte r, byte value)
     {
         r = (byte)(r ^ value);
 
-        UpdateFlagS(r);
-        UpdateFlagZ(r);
+        UpdateFlagSZUP(r);
         flag.H = false;
-        UpdateFlagPWithParity(r);
         flag.N = false;
         flag.C = false;
     }
@@ -278,10 +252,8 @@ public partial class CpuRuntime
     {
         r = (byte)(r | value);
 
-        UpdateFlagS(r);
-        UpdateFlagZ(r);
+        UpdateFlagSZUP(r);
         flag.H = false;
-        flag.P = false; //TODO: how?
         flag.N = false;
         flag.C = false;
     }
@@ -290,9 +262,7 @@ public partial class CpuRuntime
         => Cp(ref reg.A, value);
 
     public void Cp(ref byte r, byte value)
-    {
-        r = CpCommon(r, value);
-    }
+        => CpCommon(r, value);
 
     private void Cpi()
     {
@@ -308,12 +278,8 @@ public partial class CpuRuntime
         flag.C = flagCbackup;
     }
 
-    private byte CpCommon(byte r, byte value)
-    {
-        //call sub, ignore result
-        SubCommon(r, value);
-        return r;
-    }
+    private void CpCommon(byte r, byte value)
+        => SubCommon(r, value, false);
 
     private void Ex(ref ushort a, ref ushort b)
     {
@@ -328,9 +294,7 @@ public partial class CpuRuntime
     }
 
     private void ExCommon(ref ushort a, ref ushort b)
-    {
-        (a, b) = (b, a);
-    }
+        => (a, b) = (b, a);
 
     public void Push(ushort r)
     {
@@ -360,14 +324,10 @@ public partial class CpuRuntime
     }
 
     private void Ld(ref byte r, byte val)
-    {
-        r = val;
-    }
+        => r = val;
 
     private void Ld(ref ushort rr, ushort val)
-    {
-        rr = val;
-    }
+        => rr = val;
 
     private void Inc(ref byte r)
     {
@@ -379,13 +339,12 @@ public partial class CpuRuntime
         //flag.C is unaffected
         flag.H = (orig & 0b_0000_1111) == 0b_0000_1111;
         flag.N = false;
-        flag.P = orig == 0b_01111_1111;
+        flag.P = orig == 0b_0111_1111;
     }
 
     private void Inc(ref ushort rr)
     {
         rr += 1;
-
         //No flags altered
     }
 
@@ -405,59 +364,54 @@ public partial class CpuRuntime
     private void Dec(ref ushort rr)
     {
         rr -= 1;
-
         //No flags altered
     }
+
     private void Rlc(ref byte r)
-    {
-        r = RlcCommon(r);
-    }
+        => RlcCommon(ref r, r, true);
+
+    private void Rlc(byte a, ref byte r)
+        => RlcCommon(ref r, a, true);
 
     private void Rlca()
-    {
-        reg.A = RlcCommon(reg.A);
-    }
+        => RlcCommon(ref reg.A, reg.A, false);
 
-    private byte RlcCommon(byte r)
+    private void RlcCommon(ref byte r, byte a, bool flags)
     {
-        flag.C = (r & 0b_1000_0000) == 0b_1000_0000;
+        flag.C = (a >> 7) == 1;
 
-        byte ret = (byte)(r << 1);
+        r = (byte)(a << 1);
 
         if (flag.C)
-            ret |= 0b_0000_0001;
+            r |= 1;
 
-        UpdateFlagS(r);
-        UpdateFlagZ(r);
+        if (flags)
+            UpdateFlagSZUP(r);
+
+        UpdateFlagsXY(r);
+
         flag.H = false;
-        UpdateFlagPWithParity(r);
         flag.N = false;
-
-        return ret;
     }
 
     private void Rl(ref byte r)
     {
         r = RlCommon(r);
 
-        UpdateFlagPWithParity(r);
-        UpdateFlagZ(r);
-        UpdateFlagS(r);
+        UpdateFlagSZUP(r);
     }
 
     private void Rla()
-    {
-        reg.A = RlCommon(reg.A);
-    }
+        => reg.A = RlCommon(reg.A);
 
     private byte RlCommon(byte r)
     {
-        var leaving = (r & 0b_1000_0000) == 0b_1000_0000;
+        var leaving = (r >> 7) == 1;
 
-        byte ret = r <<= 1;
+        byte ret = (byte)(r << 1);
 
         if (flag.C)
-            ret |= 0b_0000_0001;
+            ret |= 1;
 
         flag.C = leaving;
 
@@ -469,54 +423,46 @@ public partial class CpuRuntime
 
     private void Rr(ref byte r)
     {
-        r = RrCommon(r);
+        RrCommon(ref r, r);
 
-        UpdateFlagPWithParity(r);
-        UpdateFlagZ(r);
-        UpdateFlagS(r);
+        UpdateFlagSZUP(r);
     }
+
+    private void Rr(byte a, ref byte r)
+        => RrCommon(ref r, a);
 
     private void Rra()
-    {
-        reg.A = RrCommon(reg.A);
-    }
+        => RrCommon(ref reg.A, reg.A);
 
-    private byte RrCommon(byte r)
+    private void RrCommon(ref byte r, byte a)
     {
-        var leaving = (r & 0b_0000_0001) == 0b_0000_0001;
+        var leaving = (a & 0b_0000_0001) == 0b_0000_0001;
 
-        byte ret = (byte)(r >> 1);
+        r = (byte)(a >> 1);
 
         if (flag.C)
-            ret |= 0b_1000_0000;
+            r |= 0b_1000_0000;
 
         flag.C = leaving;
 
         flag.N = false;
         flag.H = false;
-
-        return ret;
     }
 
     /* RRC */
 
     private void Rrc(byte a, ref byte r)
-    {
-        r = RrcCommon(a);
-    }
+        => r = RrcCommon(a);
 
     public void Rrc(ref byte r)
     {
         r = RrcCommon(r); //CHN flags
 
-        UpdateFlagSZU(r);
-        UpdateFlagPWithParity(r);
+        UpdateFlagSZUP(r);
     }
 
     private void Rrca()
-    {
-        reg.A = RrcCommon(reg.A);
-    }
+        => reg.A = RrcCommon(reg.A);
 
     private byte RrcCommon(byte r)
     {
@@ -549,19 +495,13 @@ public partial class CpuRuntime
     }
 
     private void Jr()
-    {
-        JrCommon(ReadByteOpcode());
-    }
+        => JrCommon(ReadByteOpcode());
 
     private void JrCommon(byte offset)
-    {
-        reg.PC = (ushort)(reg.PC + unchecked((sbyte)offset));
-    }
+        => reg.PC = (ushort)(reg.PC + unchecked((sbyte)offset));
 
     private void Jp(ushort address)
-    {
-        JpCommon(address);
-    }
+        => JpCommon(address);
 
     private void Jp(bool condition)
     {
@@ -572,19 +512,13 @@ public partial class CpuRuntime
     }
 
     private void Jp()
-    {
-        JpCommon(ReadUShortOpcode());
-    }
+        => JpCommon(ReadUShortOpcode());
 
     private void JpCommon(ushort address)
-    {
-        reg.PC = address;
-    }
+        => reg.PC = address;
 
     private void Rst(byte r)
-    {
-        CallCommon((ushort)r);
-    }
+        => CallCommon((ushort)r);
 
     private bool Call(bool condition)
     {
@@ -643,98 +577,67 @@ public partial class CpuRuntime
 
     private void Rrd()
     {
-        throw new NotImplementedException();
+        ref byte r = ref GetByteMemoryRef(reg.HL);
+
+        byte n_lo = (byte)(r & 0x0F);
+        byte n_hi = (byte)((r >> 4) & 0x0F);
+        byte a_lo = (byte)(reg.A & 0x0F);
+
+        reg.A = (byte)((reg.A & 0xF0) | n_lo);
+        r = (byte)((a_lo << 4) | n_hi);
+
+        UpdateFlagSZUP(reg.A);
+        flag.H = false;
+        flag.N = false;
+        //flag.C is unnafected
     }
 
     private void Rld()
     {
         ref byte r = ref GetByteMemoryRef(reg.HL);
 
-        byte n_lo = (byte)(r & 0b_0000_1111);
-        byte n_hi = (byte)((r & 0b_1111_0000) >> 4);
+        byte n_lo = (byte)(r & 0x0F);
+        byte n_hi = (byte)((r >> 4) & 0x0F);
+        byte a_lo = (byte)(reg.A & 0x0F);
 
-        byte a_lo = (byte)(reg.A & 0b_0000_1111);
+        reg.A = (byte)((reg.A & 0xF0) | n_hi);
+        r = (byte)((n_lo << 4) | a_lo);
 
-        reg.A &= 0b_1111_0000;
-        reg.A |= n_hi;
-
-        r = 0;
-        r |= n_lo;
-        r |= (byte)(a_lo << 4);
-
-        UpdateFlagS(reg.A);
-        UpdateFlagZ(reg.A);
+        UpdateFlagSZUP(reg.A);
         flag.H = false;
-        UpdateFlagPWithParity(reg.A);
         flag.N = false;
         //flag.C is unnafected
     }
 
-    private void Rlc(byte a, ref byte r)
-    {
-        r = RlcCommon(a);
-    }
-
     private void Rl(byte a, ref byte r)
-    {
-        r = RlCommon(a);
-    }
+        => r = RlCommon(a); //TODO: change return value to ref parameter
 
-    private void Rr(byte a, ref byte r)
+    private void Set(int index, ref byte a, ref byte r)
     {
-        r = RrCommon(a);
-    }
-
-    private void Sla(byte a, ref byte r)
-    {
-        r = SlaCommon(a);
-    }
-
-    private void Sra(byte a, ref byte r)
-    {
-        r = SraCommon(a);
-    }
-
-    private void Sll(byte a, ref byte r)
-    {
-        r = SllCommon(a);
-    }
-
-    private void Srl(byte a, ref byte r)
-    {
-        r = SrlCommon(a);
-    }
-
-    private void Res(int index, byte a, ref byte r)
-    {
-        r = ResCommon(index, a);
-    }
-
-    private void Set(int index, byte a, ref byte r)
-    {
-        r = SetCommon(index, a);
+        SetCommon(index, ref r, a);
+        a = r; //additionally write to memory
     }
 
     private void Set(int index, ref byte r)
-    {
-        r = SetCommon(index, r);
-    }
+        => SetCommon(index, ref r, r);
 
-    private byte SetCommon(int index, byte r)
+    private void SetCommon(int index, ref byte r, byte a)
     {
-        var ret = (byte)(r | (1 << index));
-        return ret;
+        r = (byte)(a | (1 << index));
     }
 
     private void Res(int index, ref byte r)
+        => ResCommon(index, ref r, r);
+
+    private void Res(int index, ref byte a, ref byte r)
     {
-        r = ResCommon(index, r);
+        ResCommon(index, ref r, a);
+        a = r; //additionally write to memory
     }
 
-    private byte ResCommon(int index, byte r)
+    private void ResCommon(int index, ref byte r, byte a)
     {
-        var ret = (byte)(r & ~(1 << index));
-        return ret;
+        r = (byte)(a & ~(1 << index));
     }
 
     private void Bit(int index, byte r)
@@ -749,80 +652,89 @@ public partial class CpuRuntime
     }
 
     private void Srl(ref byte r)
+        => SrlCommon(ref r, r);
+
+    private void Srl(ref byte a, ref byte r)
     {
-        r = SrlCommon(r);
+        SrlCommon(ref r, a);
+        a = r; //additionally write to memory
     }
 
-    //Move to right, right bit to carry
-    private byte SrlCommon(byte r)
+    //SRO
+    private void SrlCommon(ref byte r, byte a)
     {
-        flag.C = (r & 1) == 1;
+        flag.C = (a & 1) == 1;
 
-        byte ret = (byte)(r >> 1);
+        r = (byte)(a >> 1);
 
-        flag.S = false;
-        UpdateFlagZ(ret);
+        UpdateFlagSZUP(r);
         flag.H = false;
-        UpdateFlagPWithParity(ret);
         flag.N = false;
-
-        return ret;
     }
 
     private void Sll(ref byte r)
-    {
-        r = SllCommon(r);
-    }
+        => SllCommon(ref r, r);
 
-    private byte SllCommon(byte r)
+    private void Sll(byte a, ref byte r)
+        => SllCommon(ref r, a);
+
+    //SLIA (undocumented)
+    private void SllCommon(ref byte r, byte a)
     {
-        flag.C = (r & 0b_1000_000) == 0b_1000_000;
-        byte ret = (byte)((r << 1) | 1); //set bit 0
-        return ret;
+        flag.C = (a >> 7) == 1;
+        r = (byte)((a << 1) | 1); //set bit 0
+        UpdateFlagSZUP(r);
+        flag.H = false;
+        flag.N = false;
     }
 
     private void Sra(ref byte r)
-    {
-        r = SraCommon(r);
-    }
+        => SraCommon(ref r, r);
 
-    private byte SraCommon(byte r)
+    private void Sra(byte a, ref byte r)
+        => SraCommon(ref r, a);
+
+    private void SraCommon(ref byte r, byte a)
     {
-        flag.C = (r & 1) == 1;
-        byte ret = (byte)((r >> 1) | (r & 0b_1000_0000)); //7 bit unchanged
-        return ret;
+        flag.C = (a & 1) == 1;
+        r = (byte)((a >> 1) | (a & 0b_1000_0000)); //7 bit unchanged
+        UpdateFlagSZUP(r);
+        flag.H = false;
+        flag.N = false;
     }
 
     private void Sla(ref byte r)
-    {
-        r = SlaCommon(r);
-    }
+        => SlaCommon(ref r, r);
 
-    private byte SlaCommon(byte r)
-    {
-        flag.C = (r & 0b_1000_0000) == 0b_1000_0000;
-        byte ret = (byte)(r << 1);
-        return ret;
-    }
+    private void Sla(byte a, ref byte r)
+        => SlaCommon(ref r, a);
 
-    private ref byte GetPort(byte r)
+    private void SlaCommon(ref byte r, byte a)
     {
-        throw new NotImplementedException();
+        flag.C = (a >> 7) == 1;
+        r = (byte)(a << 1);
+
+        UpdateFlagSZUP(r);
+        flag.H = false;
+        flag.N = false;
     }
 
     private bool Otdr()
     {
-        throw new NotImplementedException();
+        NotImplemented();
+        return false;
     }
 
     private bool Indr()
     {
-        throw new NotImplementedException();
+        NotImplemented();
+        return false;
     }
 
     private bool Cpdr()
     {
-        throw new NotImplementedException();
+        NotImplemented();
+        return false;
     }
 
     private bool Lddr()
@@ -833,9 +745,12 @@ public partial class CpuRuntime
         Dec(ref reg.DE);
         Dec(ref reg.BC);
 
+        var isFast = true;
+
         if (reg.BC != 0)
         {
             reg.PC -= 2;
+            isFast = false;
         }
 
         //flag.S is unaffected
@@ -845,20 +760,20 @@ public partial class CpuRuntime
         flag.N = false;
         //flag.C - nothing in manual
 
-        return false; //TODO
+        return isFast;
     }
 
     private bool Otir()
     {
-        throw new NotImplementedException();
+        NotImplemented();
+        return false;
     }
 
     private bool Inir()
     {
-        throw new NotImplementedException();
+        NotImplemented();
+        return false;
     }
-
-    //TODO: p/v flag on block transfer instructions
 
     private bool Cpir()
     {
@@ -867,19 +782,24 @@ public partial class CpuRuntime
         Inc(ref reg.HL);
         Dec(ref reg.BC);
 
-        if (reg.BC != 0 && mem != reg.A)
+        var isFast = true;
+
+        var diff = (byte)(reg.A - mem);
+
+        if (reg.BC != 0 && diff != 0)
         {
             reg.PC -= 2; //repeat this command
+            isFast = false;
         }
 
-        //flag.S //TODO: ???
-        flag.Z = mem == reg.A;
-        //flag.H //TODO: ???
+        UpdateFlagS(diff); //???
+        flag.Z = diff == 0;
+        (_, flag.H) = Bits.CalcSubCarry(reg.A, mem, 0); //???
         flag.P = reg.BC != 0;
         flag.N = true;
         //flag.C is unaffected
 
-        return false; //TODO
+        return isFast;
     }
 
     private bool Ldir()
@@ -891,9 +811,12 @@ public partial class CpuRuntime
         Inc(ref reg.HL);
         Dec(ref reg.BC);
 
+        var isFast = true;
+
         if (reg.BC != 0)
         {
             reg.PC -= 2; //repeat this command
+            isFast = false;
         }
 
         //flag.S is unaffected
@@ -903,37 +826,37 @@ public partial class CpuRuntime
         flag.N = false;
         //flag.C is unaffected
 
-        return false; //TODO
+        return isFast;
     }
 
     private void Ind()
     {
-        throw new NotImplementedException();
+        NotImplemented();
     }
 
     private void Outd()
     {
-        throw new NotImplementedException();
+        NotImplemented();
     }
 
     private void Cpd()
     {
-        throw new NotImplementedException();
+        NotImplemented();
     }
 
     private void Ldd()
     {
-        throw new NotImplementedException();
+        NotImplemented();
     }
 
     private void Outi()
     {
-        throw new NotImplementedException();
+        NotImplemented();
     }
 
     private void Ini()
     {
-        throw new NotImplementedException();
+        NotImplemented();
     }
 
     private void Ldi()
@@ -953,43 +876,35 @@ public partial class CpuRuntime
 
     private bool Otimr()
     {
-        throw new NotImplementedException();
+        NotImplemented();
+        return false;
     }
 
     private bool Otdmr()
     {
-        throw new NotImplementedException();
+        NotImplemented();
+        return false;
     }
 
-    private bool Otdm()
+    private void Otdm()
     {
-        throw new NotImplementedException();
+        NotImplemented();
     }
 
-    private bool Otim()
+    private void Otim()
     {
-        throw new NotImplementedException();
+        NotImplemented();
     }
 
-    private bool Slp()
+    private void Slp()
     {
-        throw new NotImplementedException();
-    }
-
-    private bool Tstio(byte v)
-    {
-        throw new NotImplementedException();
+        NotImplemented();
     }
 
     private void Reti()
     {
         reg.IFF1 = reg.IFF2;
         Ret();
-    }
-
-    private bool Mlt(ref ushort bC)
-    {
-        throw new NotImplementedException();
     }
 
     private void Im(byte mode)
@@ -1007,7 +922,7 @@ public partial class CpuRuntime
     {
         var original = reg.A;
 
-        reg.A = SubCommon(0, reg.A);
+        reg.A = SubCommon(0, reg.A, false);
 
         flag.P = (original == 0x80);
         flag.C = (original != 0x00);
@@ -1015,21 +930,22 @@ public partial class CpuRuntime
 
     private void Out0(byte port, byte value) //Z180
     {
-        throw new NotSupportedException("Z180");
+        NotImplemented();
     }
 
     private void In(byte port)
     {
-        throw new NotSupportedException("Z180");
+        NotImplemented();
     }
 
     private void In0(ref byte r, byte port) //Z180
     {
-        throw new NotSupportedException("Z180");
+        NotImplemented();
     }
 
-    private void Tst(byte value) //Z180
+    private void NotImplemented()
     {
-        throw new NotSupportedException("Z180");
+        if (throwOnNotImplemented)
+            throw new NotImplementedException();
     }
 }

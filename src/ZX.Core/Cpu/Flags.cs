@@ -20,7 +20,7 @@ public class Flags(Registers reg)
         set => reg.F = value ? (byte)(reg.F | 0b_0100_0000) : (byte)(reg.F & ~0b_0100_0000);
     }
 
-    public bool F5 //undocumented flag
+    public bool Y //undocumented flag
     {
         get => (reg.F & 0b_0010_0000) == 0b_0010_0000;
         set => reg.F = value ? (byte)(reg.F | 0b_0010_0000) : (byte)(reg.F & ~0b_0010_0000);
@@ -35,7 +35,7 @@ public class Flags(Registers reg)
         set => reg.F = value ? (byte)(reg.F | 0b_0001_0000) : (byte)(reg.F & ~0b_0001_0000);
     }
 
-    public bool F3 //undocumented flag
+    public bool X //undocumented flag
     {
         get => (reg.F & 0b_0000_1000) == 0b_0000_1000;
         set => reg.F = value ? (byte)(reg.F | 0b_0000_1000) : (byte)(reg.F & ~0b_0000_1000);

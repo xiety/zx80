@@ -510,8 +510,8 @@ public partial class CpuRuntime
                 Ld(ref reg.SP, reg.IY);
                 return (10, "ld sp,iy");
             default:
-                //throw new Exception($"{op:X2}");
-                Console.WriteLine($"{op:X2}");
+                //throw new Exception($"\{op:X2\}");
+                Console.WriteLine($"Unknown operation: FD {op:X2}");
                 return (0, "UNKNOWN");
         }
     }

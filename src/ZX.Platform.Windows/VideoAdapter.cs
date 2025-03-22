@@ -39,7 +39,7 @@ public class VideoAdapter(byte[] memory)
 
             for (var x = 0; x < width / 8; ++x)
             {
-                var debug = false;// (pixelIndex + 0x4000) is 0x4001 or 0x4101 or 0x4201 or 0x4301 or 0x4401 or 0x4501 or 0x4601 or 0x4701;
+                var debug = false;
 
                 var pixelsRow = videoMemory[pixelIndex];
                 var attribute = videoMemory[attributeIndex];
@@ -73,7 +73,7 @@ public class VideoAdapter(byte[] memory)
     private static (byte R, byte G, byte B) ToColor(bool bright, int mode)
         => (bright, mode) switch
         {
-            (false, 1) => (0x00, 0x00,0xD7),
+            (false, 1) => (0x00, 0x00, 0xD7),
             (true, 1) => (0x00, 0x00, 0xFF),
             (false, 2) => (0xD7, 0x00, 0x00),
             (true, 2) => (0xFF, 0x00, 0x00),

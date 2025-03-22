@@ -4,6 +4,10 @@ namespace ZX.Core.Cpu;
 
 public partial class CpuRuntime
 {
+    public const int FramesPerSecond = 50;
+    public const int TStatesPerSecond = 3494400;
+    public const int TStatesPerFrame = TStatesPerSecond / FramesPerSecond;
+
     const uint totalMemory = 65536;
     const uint totalOutput = 65536;
 
@@ -21,6 +25,8 @@ public partial class CpuRuntime
 
     private bool isHalt = false;
 
+    private bool throwOnNotImplemented = false;
+
     private RoutineCatalog? routineCatalog;
 
     public Registers Reg => reg;
@@ -28,8 +34,11 @@ public partial class CpuRuntime
     public byte[] Memory => memory;
     public byte[] Output => output;
 
+    public long CurrentTick { get; private set; }
+
     public event Action<ushort>? OnMemoryRead;
     public event Action<ushort>? OnOpcodeRead;
+    public event Action<byte, byte>? OnOutput;
 
     public CpuRuntime()
         : this(new(), new byte[totalMemory])
@@ -54,6 +63,21 @@ public partial class CpuRuntime
         flag.P = true;
     }
 
+    public void RunFrame()
+    {
+        CurrentTick = 0;
+
+        do
+        {
+            var ticks = RunStep();
+            CurrentTick += ticks;
+        }
+        while (CurrentTick < TStatesPerFrame);
+
+        Interrupt();
+    }
+
+    // public for testing only
     public int RunStep()
     {
         if (isHalt)
@@ -94,7 +118,7 @@ public partial class CpuRuntime
         {
             CallCommon(InterruptAddress);
 
-            //TODO: ticksUntilInterruption += 13;
+            //TODO: ticksUntilInterruption += 17;
         }
         else if (reg.InterruptMode == 2)
         {
@@ -123,10 +147,16 @@ public partial class CpuRuntime
     public void CleanStack()
         => currentDepthDebug = 0;
 
-    private void UpdateFlagUndocumented(byte r)
+    private void UpdateFlagsXY(byte r)
     {
-        flag.F3 = (r & 0b_0000_1000) == 0b_0000_1000;
-        flag.F5 = (r & 0b_0010_0000) == 0b_0010_0000;
+        flag.X = (r & 0b_0000_1000) == 0b_0000_1000;
+        flag.Y = (r & 0b_0010_0000) == 0b_0010_0000;
+    }
+
+    private void UpdateFlagsXY(ushort rr)
+    {
+        flag.X = (rr & 0b_0000_1000_0000_0000) == 0b_0000_1000_0000_0000;
+        flag.Y = (rr & 0b_0010_0000_0000_0000) == 0b_0010_0000_0000_0000;
     }
 
     private void UpdateFlagZ(byte r)
@@ -145,36 +175,31 @@ public partial class CpuRuntime
     {
         UpdateFlagS(r);
         UpdateFlagZ(r);
-        UpdateFlagUndocumented(r);
+        UpdateFlagsXY(r);
     }
 
-    /*
-    private bool UpdateFlagPWithParity(byte r)
+    private void UpdateFlagSZU(ushort rr)
     {
-        ulong x1 = 0x0101010101010101;
-        ulong x2 = 0x8040201008040201;
-        return ((((r * x1) & x2) % (ulong)0x1FF) & 1) == 0;
+        UpdateFlagS(rr);
+        UpdateFlagZ(rr);
+        UpdateFlagsXY(rr);
     }
-    */
 
-    private void UpdateFlagPWithParity(byte r)
+    private void UpdateFlagSZUP(byte r)
     {
-        byte s = 1;
-        int cnt = 0;
+        UpdateFlagSZU(r);
+        UpdateFlagP(r);
+    }
 
-        for (var i = 0; i < 8; ++i)
-        {
-            if ((byte)(r & s) == s)
-                cnt++;
-
-            s <<= 1;
-        }
-
+    private void UpdateFlagP(byte r)
+    {
+        var cnt = System.Numerics.BitOperations.PopCount(r);
         flag.P = (cnt % 2) == 0;
     }
 
     private void LogError(string text)
     {
+        Console.WriteLine(text);
         File.AppendAllText(@"zx_error.log", text + Environment.NewLine);
     }
 }

@@ -134,36 +134,41 @@ public class Bits(int length)
         return (result, borrow, halfBorrow);
     }
 
-    public static (bool Carry, bool HalfCarry) CalcAddCarry(sbyte a, sbyte b)
+    //public static (bool Carry, bool HalfCarry) CalcAddCarry(sbyte a, sbyte b, int carryBit)
+    //{
+    //    byte ua = unchecked((byte)a);
+    //    byte ub = unchecked((byte)b);
+
+    //    var carry = (ua + ub + carryBit) > 255;
+    //    var halfCarry = ((ua % 16) + (ub % 16) + carryBit) > 15;
+
+    //    return (carry, halfCarry);
+    //}
+
+    public static (bool Carry, bool HalfCarry) CalcAddCarry(byte a, byte b, byte carryIn)
     {
-        byte ua = unchecked((byte)a);
-        byte ub = unchecked((byte)b);
-
-        var carry = (ua + ub) > 255;
-        var halfCarry = ((ua % 16) + (ub % 16)) > 15;
-
-        return (carry, halfCarry);
+        int fullSum = a + b + carryIn;
+        int lowNibbleSum = (a & 0x0F) + (b & 0x0F) + carryIn;
+        return (fullSum > 0xFF, lowNibbleSum > 0x0F);
     }
 
-    public static (bool Carry, bool HalfCarry) CalcAddCarry(short a, short b)
+    public static (bool Carry, bool HalfCarry) CalcAddCarry(ushort a, ushort b, byte carryIn)
     {
-        ushort ua = unchecked((ushort)a);
-        ushort ub = unchecked((ushort)b);
-
-        var carry = (ua + ub) > 65535;
-        var halfCarry = ((ua % 256) + (ub % 256)) > 255;
-
-        return (carry, halfCarry);
+        var fullSum = a + b + carryIn;
+        var lowNibbleSum = (a & 0xFF) + (b & 0xFF) + carryIn;
+        return (fullSum > 0xFFFF, lowNibbleSum > 0xFF);
     }
 
-    public static (bool Borrow, bool HalfBorrow) CalcSubCarry(sbyte a, sbyte b)
+    public static (bool Borrow, bool HalfBorrow) CalcSubCarry(byte a, byte b, byte carryIn)
     {
-        byte ua = unchecked((byte)a);
-        byte ub = unchecked((byte)b);
-
-        var borrow = (ua - ub) < 0;
-        var halfBorrow = ((ua % 16) - (ub % 16)) < 0;
-
-        return (borrow, halfBorrow);
+        var fullSub = a - b - carryIn;
+        int lowNibbleSub = (a & 0x0F) - (b & 0x0F) - carryIn;
+        return (fullSub < 0, lowNibbleSub < 0);
     }
+
+    public static byte Low(ushort u)
+        => (byte)(u & 0xFF);
+
+    public static byte High(ushort u)
+        => (byte)(u >> 8);
 }

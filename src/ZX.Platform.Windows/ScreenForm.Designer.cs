@@ -37,6 +37,7 @@
             tableLayoutPanel2 = new TableLayoutPanel();
             panel1 = new Panel();
             comboFiles = new ComboBox();
+            textBoxFps = new TextBox();
             ((System.ComponentModel.ISupportInitialize)pictureScreen).BeginInit();
             ((System.ComponentModel.ISupportInitialize)pictureDebug).BeginInit();
             tableLayoutPanel1.SuspendLayout();
@@ -128,6 +129,7 @@
             // panel1
             // 
             panel1.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            panel1.Controls.Add(textBoxFps);
             panel1.Controls.Add(comboFiles);
             panel1.Controls.Add(buttonReset);
             panel1.Controls.Add(buttonScreenshot);
@@ -147,6 +149,14 @@
             comboFiles.TabIndex = 6;
             comboFiles.DropDown += ComboFiles_DropDown;
             // 
+            // textBoxFps
+            // 
+            textBoxFps.Location = new Point(8, 201);
+            textBoxFps.Name = "textBoxFps";
+            textBoxFps.ReadOnly = true;
+            textBoxFps.Size = new Size(75, 23);
+            textBoxFps.TabIndex = 7;
+            // 
             // ScreenForm
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -163,6 +173,7 @@
             tableLayoutPanel1.ResumeLayout(false);
             tableLayoutPanel2.ResumeLayout(false);
             panel1.ResumeLayout(false);
+            panel1.PerformLayout();
             ResumeLayout(false);
         }
 
@@ -177,5 +188,6 @@
         private TableLayoutPanel tableLayoutPanel2;
         private Panel panel1;
         private ComboBox comboFiles;
+        private TextBox textBoxFps;
     }
 }

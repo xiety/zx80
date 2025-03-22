@@ -30,5 +30,5 @@ public class BackgroundTask(Func<CancellationToken, Task> func, CancellationToke
         => delegateQueue.Enqueue(action);
 
     public void Wait()
-        => backgroundTask.Wait();
+        => backgroundTask?.Wait();
 }

@@ -1,9 +1,9 @@
-﻿using System.Diagnostics;
-
-using ZX.Core.Cpu;
+﻿using ZX.Core.Cpu;
 using ZX.Core.FileFormats;
 
 namespace ZX.Core.Spectrum;
+
+//TODO: remove this class and move loaders to some helpers
 
 public class SpectrumRuntime(string biosFolder)
 {
@@ -11,16 +11,16 @@ public class SpectrumRuntime(string biosFolder)
     public const ushort AddressVideoMemoryStart = 0x4000;
     public const ushort AddressVideoMemoryEnd = 0x5AFF;
 
-    private readonly CpuRuntime cpu = new();
+    readonly CpuRuntime cpu = new();
+    readonly FpsMeasurer fpsMeasurer = new();
 
     public CpuRuntime Cpu => cpu;
     public byte[] Memory => cpu.Memory;
     public byte[] Output => cpu.Output;
     public Registers Reg => cpu.Reg;
 
-    private const int TicksPerFrame = 69888;
-
-    public event Action? OnStep;
+    public long CurrentTick => cpu.CurrentTick;
+    public long Fps { get; private set; }
 
     public event Action<ushort>? OnMemoryRead
     {
@@ -32,6 +32,12 @@ public class SpectrumRuntime(string biosFolder)
     {
         add { cpu.OnOpcodeRead += value; }
         remove { cpu.OnOpcodeRead -= value; }
+    }
+
+    public event Action<byte, byte>? OnOutput
+    {
+        add { cpu.OnOutput += value; }
+        remove { cpu.OnOutput -= value; }
     }
 
     public event Action? OnReset;
@@ -113,32 +119,7 @@ public class SpectrumRuntime(string biosFolder)
 
     public void RunFrame()
     {
-        var interruptStartTime = Stopwatch.GetTimestamp();
-
-        cpu.Interrupt();
-
-        var currentTick = 0;
-
-        do
-        {
-            currentTick += cpu.RunStep();
-
-            OnStep?.Invoke();
-        }
-        while (currentTick < TicksPerFrame);
-
-        WaitRealTime(interruptStartTime);
-    }
-
-    private void WaitRealTime(long interruptStartTime)
-    {
-        var interruptDuration = (Stopwatch.Frequency / 100);
-        var required = interruptStartTime + interruptDuration;
-
-        do
-        {
-            Thread.Sleep(1);
-        }
-        while (Stopwatch.GetTimestamp() < required);
+        Fps = fpsMeasurer.Update();
+        cpu.RunFrame();
     }
 }

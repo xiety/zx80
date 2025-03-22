@@ -777,8 +777,8 @@ public partial class CpuRuntime
                 Rst(0x38);
                 return (11, "rst 38h");
             default:
-                //throw new Exception($"{op:X2}");
-                Console.WriteLine($"{op:X2}");
+                //throw new Exception($"\{op:X2\}");
+                Console.WriteLine($"Unknown operation:  {op:X2}");
                 return (0, "UNKNOWN");
         }
     }

@@ -781,8 +781,8 @@ public partial class CpuRuntime
                 Set(7, ref reg.A);
                 return (8, "set 7,a");
             default:
-                //throw new Exception($"{op:X2}");
-                Console.WriteLine($"{op:X2}");
+                //throw new Exception($"\{op:X2\}");
+                Console.WriteLine($"Unknown operation: CB {op:X2}");
                 return (0, "UNKNOWN");
         }
     }

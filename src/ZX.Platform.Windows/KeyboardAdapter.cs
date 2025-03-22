@@ -2,13 +2,13 @@
 
 public class KeyboardAdapter
 {
-    private readonly byte[] output;
+    private readonly byte[] input;
 
     private readonly Dictionary<Keys, Item> keys = [];
 
-    public KeyboardAdapter(byte[] output)
+    public KeyboardAdapter(byte[] input)
     {
-        this.output = output;
+        this.input = input;
 
         SetupKeys(0xFEFE, Keys.ShiftKey /*Caps Shift*/, Keys.Z, Keys.X, Keys.C, Keys.V);
         SetupKeys(0xFDFE, Keys.A, Keys.S, Keys.D, Keys.F, Keys.G);
@@ -22,7 +22,7 @@ public class KeyboardAdapter
 
     private void SetupKeys(ushort address, Keys k0, Keys k1, Keys k2, Keys k3, Keys k4)
     {
-        output[address] = 255;
+        input[address] = 255;
 
         keys.Add(k0, new(address, 1 << 0));
         keys.Add(k1, new(address, 1 << 1));
@@ -50,7 +50,7 @@ public class KeyboardAdapter
     private void KeyDownInternal(Keys keyCode)
     {
         if (keys.TryGetValue(keyCode, out var item))
-            output[item.Address] &= (byte)~item.Bit; //set bit to zero
+            input[item.Address] &= (byte)~item.Bit; //set bit to zero
     }
 
     public void SetKeyUp(Keys keyCode)
@@ -72,7 +72,7 @@ public class KeyboardAdapter
     private void KeyUpInternal(Keys keyCode)
     {
         if (keys.TryGetValue(keyCode, out var item))
-            output[item.Address] |= (byte)item.Bit; //set bit to one
+            input[item.Address] |= (byte)item.Bit; //set bit to one
     }
 
     record Item(ushort Address, byte Bit);

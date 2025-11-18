@@ -21,8 +21,6 @@ public class CPU_Ld_Tests : BaseCpuTests
 public class CPU_Rrc_Tests : BaseCpuTests
 {
     [DataRow(unchecked((sbyte)0b_0000_0001), unchecked((sbyte)0b_1000_0000), true, false)]
-    [DataRow(unchecked((sbyte)0b_0000_0001), unchecked((sbyte)0b_1000_0000), true, false)]
-    [DataRow(unchecked((sbyte)0b_1000_0000), unchecked((sbyte)0b_0100_0000), false, false)]
     [DataRow(unchecked((sbyte)0b_1000_0000), unchecked((sbyte)0b_0100_0000), false, false)]
     [TestMethod]
     public void Rrc(sbyte a, sbyte expected, bool expectedC, bool expectedP)
@@ -98,7 +96,7 @@ public class CPU_Add_Tests : BaseCpuTests
     [DataRow((sbyte)-127, (sbyte)-1, true, (sbyte)-127, false, true, true)]
     [DataRow((sbyte)-127, (sbyte)-1, false, (sbyte)-128, false, true, true)]
 
-    [DataRow((sbyte)-128, (sbyte)-1, true, (sbyte)-128, false, true, false)]
+    [DataRow((sbyte)-128, (sbyte)-1, true, (sbyte)-128, false, true, true)]
     [DataRow((sbyte)-128, (sbyte)-1, false, (sbyte)127, true, true, false)]
 
     [TestMethod]

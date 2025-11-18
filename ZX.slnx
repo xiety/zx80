@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".gitignore" />
+    <File Path="Directory.Build.props" />
+  </Folder>
+  <Project Path="src/ZX.CodeAnalyzers/ZX.CodeAnalyzers.Test/ZX.CodeAnalyzers.Test.csproj" />
+  <Project Path="src/ZX.CodeAnalyzers/ZX.CodeAnalyzers/ZX.CodeAnalyzers.csproj" />
+  <Project Path="src/ZX.CodeGeneration/ZX.CodeGeneration.csproj" />
+  <Project Path="src/ZX.Core.Tests/ZX.Core.Tests.csproj" />
+  <Project Path="src/ZX.Core/ZX.Core.csproj" />
+  <Project Path="src/ZX.Platform.Windows/ZX.Platform.Windows.csproj" />
+</Solution>

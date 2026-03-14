@@ -9,4 +9,5 @@
   <Project Path="src/ZX.Core.Tests/ZX.Core.Tests.csproj" />
   <Project Path="src/ZX.Core/ZX.Core.csproj" />
   <Project Path="src/ZX.Platform.Windows/ZX.Platform.Windows.csproj" />
+  <Project Path="src/ZX.Platform.Pi/ZX.Platform.Pi.csproj" />
 </Solution>

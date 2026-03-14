@@ -1,79 +1,62 @@
 ﻿namespace ZX.Platform.Windows;
 
-public class KeyboardAdapter
+public class KeyboardAdapter(byte[] input) : KeyboardAdapterBase(input)
 {
-    private readonly byte[] input;
-
-    private readonly Dictionary<Keys, Item> keys = [];
-
-    public KeyboardAdapter(byte[] input)
-    {
-        this.input = input;
-
-        SetupKeys(0xFEFE, Keys.ShiftKey /*Caps Shift*/, Keys.Z, Keys.X, Keys.C, Keys.V);
-        SetupKeys(0xFDFE, Keys.A, Keys.S, Keys.D, Keys.F, Keys.G);
-        SetupKeys(0xFBFE, Keys.Q, Keys.W, Keys.E, Keys.R, Keys.T);
-        SetupKeys(0xF7FE, Keys.D1, Keys.D2, Keys.D3, Keys.D4, Keys.D5);
-        SetupKeys(0xEFFE, Keys.D0, Keys.D9, Keys.D8, Keys.D7, Keys.D6);
-        SetupKeys(0xDFFE, Keys.P, Keys.O, Keys.I, Keys.U, Keys.Y);
-        SetupKeys(0xBFFE, Keys.Enter, Keys.L, Keys.K, Keys.J, Keys.H);
-        SetupKeys(0x7FFE, Keys.Space, Keys.ControlKey /*Symbol Shift*/, Keys.M, Keys.N, Keys.B);
-    }
-
-    private void SetupKeys(ushort address, Keys k0, Keys k1, Keys k2, Keys k3, Keys k4)
-    {
-        input[address] = 255;
-
-        keys.Add(k0, new(address, 1 << 0));
-        keys.Add(k1, new(address, 1 << 1));
-        keys.Add(k2, new(address, 1 << 2));
-        keys.Add(k3, new(address, 1 << 3));
-        keys.Add(k4, new(address, 1 << 4));
-    }
-
     public void SetKeyDown(Keys keyCode)
     {
-        if (keyCode == Keys.Oem5) // Key '\'
-            keyCode = Keys.Enter;
-
-        if (keyCode == Keys.Back)
-        {
-            KeyDownInternal(Keys.ShiftKey);
-            KeyDownInternal(Keys.D0);
-        }
-        else
-        {
-            KeyDownInternal(keyCode);
-        }
-    }
-
-    private void KeyDownInternal(Keys keyCode)
-    {
-        if (keys.TryGetValue(keyCode, out var item))
-            input[item.Address] &= (byte)~item.Bit; //set bit to zero
+        if (keyMap.TryGetValue(keyCode, out var zxKey))
+            SetKeyDown(zxKey);
     }
 
     public void SetKeyUp(Keys keyCode)
     {
-        if (keyCode == Keys.Oem5) // Key '\'
-            keyCode = Keys.Enter;
-
-        if (keyCode == Keys.Back)
-        {
-            KeyUpInternal(Keys.ShiftKey);
-            KeyUpInternal(Keys.D0);
-        }
-        else
-        {
-            KeyUpInternal(keyCode);
-        }
+        if (keyMap.TryGetValue(keyCode, out var zxKey))
+            SetKeyUp(zxKey);
     }
 
-    private void KeyUpInternal(Keys keyCode)
+    private static readonly Dictionary<Keys, ZxKey> keyMap = new()
     {
-        if (keys.TryGetValue(keyCode, out var item))
-            input[item.Address] |= (byte)item.Bit; //set bit to one
-    }
-
-    record Item(ushort Address, byte Bit);
+        [Keys.ShiftKey] = ZxKey.Shift,
+        [Keys.Z] = ZxKey.Z,
+        [Keys.X] = ZxKey.X,
+        [Keys.C] = ZxKey.C,
+        [Keys.V] = ZxKey.V,
+        [Keys.A] = ZxKey.A,
+        [Keys.S] = ZxKey.S,
+        [Keys.D] = ZxKey.D,
+        [Keys.F] = ZxKey.F,
+        [Keys.G] = ZxKey.G,
+        [Keys.Q] = ZxKey.Q,
+        [Keys.W] = ZxKey.W,
+        [Keys.E] = ZxKey.E,
+        [Keys.R] = ZxKey.R,
+        [Keys.T] = ZxKey.T,
+        [Keys.D1] = ZxKey.D1,
+        [Keys.D2] = ZxKey.D2,
+        [Keys.D3] = ZxKey.D3,
+        [Keys.D4] = ZxKey.D4,
+        [Keys.D5] = ZxKey.D5,
+        [Keys.D0] = ZxKey.D0,
+        [Keys.D9] = ZxKey.D9,
+        [Keys.D8] = ZxKey.D8,
+        [Keys.D7] = ZxKey.D7,
+        [Keys.D6] = ZxKey.D6,
+        [Keys.P] = ZxKey.P,
+        [Keys.O] = ZxKey.O,
+        [Keys.I] = ZxKey.I,
+        [Keys.U] = ZxKey.U,
+        [Keys.Y] = ZxKey.Y,
+        [Keys.Enter] = ZxKey.Enter,
+        [Keys.Oem5] = ZxKey.Enter,
+        [Keys.L] = ZxKey.L,
+        [Keys.K] = ZxKey.K,
+        [Keys.J] = ZxKey.J,
+        [Keys.H] = ZxKey.H,
+        [Keys.Space] = ZxKey.Space,
+        [Keys.ControlKey] = ZxKey.Ctrl,
+        [Keys.M] = ZxKey.M,
+        [Keys.N] = ZxKey.N,
+        [Keys.B] = ZxKey.B,
+        [Keys.Back] = ZxKey.Backspace
+    };
 }

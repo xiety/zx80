@@ -8,13 +8,13 @@ public partial class CpuRuntime
     public const int TStatesPerSecond = 3494400;
     public const int TStatesPerFrame = TStatesPerSecond / FramesPerSecond;
 
-    const uint totalMemory = 65536;
-    const uint totalOutput = 65536;
+    const uint TotalMemory = 65536;
+    const uint TotalOutput = 65536;
 
     const ushort InterruptAddress = 0x0038;
 
     readonly byte[] memory;
-    readonly byte[] output = new byte[totalOutput];
+    readonly byte[] output = new byte[TotalOutput];
 
     private readonly Stack<ushort> callStackDebug = new();
 
@@ -27,7 +27,7 @@ public partial class CpuRuntime
 
     private bool throwOnNotImplemented = false;
 
-    private RoutineCatalog? routineCatalog;
+    //private RoutineCatalog? routineCatalog;
 
     public Registers Reg => reg;
     public Flags Flag => flag;
@@ -41,7 +41,7 @@ public partial class CpuRuntime
     public event Action<byte, byte>? OnOutput;
 
     public CpuRuntime()
-        : this(new(), new byte[totalMemory])
+        : this(new(), new byte[TotalMemory])
     {
     }
 
@@ -135,8 +135,8 @@ public partial class CpuRuntime
     public void Load(uint address, ReadOnlySpan<byte> program)
         => program.CopyTo(memory.AsSpan((int)address));
 
-    public void LoadRoutineCatalog(RoutineCatalog routineCatalog)
-        => this.routineCatalog = routineCatalog;
+    //public void LoadRoutineCatalog(RoutineCatalog routineCatalog)
+    //    => this.routineCatalog = routineCatalog;
 
     public void InitRegisters(Registers reg)
         => this.reg.Initialize(reg);

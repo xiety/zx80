@@ -53,7 +53,12 @@ public partial class CpuRuntime
     }
 
     private void InCommon(ref byte r, ushort address)
-        => r = output[address];
+    {
+        if ((address & 0xFF) == 0x1F) // Kempston
+            r = output[0x001F];
+        else
+            r = output[address];
+    }
 
     private void Halt()
         => isHalt = true;
@@ -929,11 +934,6 @@ public partial class CpuRuntime
     }
 
     private void Out0(byte port, byte value) //Z180
-    {
-        NotImplemented();
-    }
-
-    private void In(byte port)
     {
         NotImplemented();
     }

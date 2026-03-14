@@ -46,7 +46,7 @@ public class SpectrumRuntime(string biosFolder)
     {
         cpu.Clear();
         cpu.Load(0x0000, File.ReadAllBytes(Path.Combine(biosFolder, "48.rom")));
-        cpu.LoadRoutineCatalog(new RoutineCatalog(Path.Combine(biosFolder, "48.rom.description")));
+        //cpu.LoadRoutineCatalog(new RoutineCatalog(Path.Combine(biosFolder, "48.rom.description")));
         cpu.SetPC(0x0000);
     }
 

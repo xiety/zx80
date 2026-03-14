@@ -8,9 +8,9 @@ namespace ZX.Platform.Windows;
 
 public class DebugVisualizer
 {
-    private const int width = 256;
-    private const int height = 256;
-    private readonly byte[] imageBytes = new byte[width * height * 3];
+    private const int Width = 256;
+    private const int Height = 256;
+    private readonly byte[] imageBytes = new byte[Width * Height * 3];
 
     private readonly HashSet<ushort> opcodeSet = [];
     private readonly HashSet<ushort> readSet = [];
@@ -81,13 +81,13 @@ public class DebugVisualizer
         return true;
     }
 
-    private Bitmap FromBytes(byte[] data)
+    private static Bitmap FromBytes(byte[] data)
     {
-        var stride = (width % 4 == 0) ? width : width + 4 - width % 4;
+        var stride = (Width % 4 == 0) ? Width : Width + 4 - Width % 4;
 
         var formatOutput = PixelFormat.Format24bppRgb;
-        var rect = new Rectangle(0, 0, width, height);
-        var bmp = new Bitmap(stride, height, formatOutput);
+        var rect = new Rectangle(0, 0, Width, Height);
+        var bmp = new Bitmap(stride, Height, formatOutput);
 
         var bmpData = bmp.LockBits(rect, ImageLockMode.ReadOnly, formatOutput);
         Marshal.Copy(data, 0, bmpData.Scan0, data.Length);
